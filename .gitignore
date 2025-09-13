@@ -1,4 +1,14 @@
-.env
+# Python virtual environment
 myenv/
-__pycache__
 
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables - DO NOT COMMIT THIS FILE
+.env
+
+# Log files and state files
+*.log
+*.txt
+*.json

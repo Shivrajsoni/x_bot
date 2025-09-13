@@ -69,40 +69,58 @@ def _generate_llm_post(prompt):
 # --- Topic-Specific LLM Prompts ---
 
 def _get_tech_prompt():
-    max_chars = random.randint(120, 180)
+    max_chars = random.randint(120, 260)
     return f"""
-    You are a sharp, witty, and slightly cynical tech commentator on X (formerly Twitter).
-    Your task is to find a single, genuinely interesting, and recent piece of news in the tech world (AI, robotics, biotech, space-tech, etc.).
-    After finding it, write a short, provocative tweet (under {max_chars} characters) about it.
-
-    Your tweet must:
-    - Have a strong, biased opinion (be skeptical, overly enthusiastic, or satirical).
-    - Not just state the news, but comment on its deeper implication.
-    - Use 1-3 relevant, popular hashtags.
-    - Be engaging, perhaps by asking a rhetorical question or making a bold prediction.
-    - DO NOT include links or mention the source.
+    You are 'Cyberskeptic', a tech commentator on X with a sharp, insightful, and slightly pessimistic wit.
+    Find a recent, hyped-up tech news story (in AI, VR, blockchain, etc.).
+    Write a tweet under {max_chars} characters that cuts through the hype and points out the potential downside, the overlooked consequence, or the comical absurdity of it.
+    Your tone is dry, witty, and knowledgeable. End with a single, cutting hashtag.
     """
 
 def _get_deep_thought_prompt():
-    max_chars = random.randint(100, 160)
+    max_chars = random.randint(100, 200)
     return f"""
-    You are a modern-day philosopher on X (formerly Twitter), blending deep thought with a touch of absurdity.
-    Generate a single, profound, and slightly strange observation about modern life, society, or the human condition.
-
-    Your tweet must be:
-    - Under {max_chars} characters.
-    - Phrased as a "shower thought" or a paradoxical question.
-    - Make people stop and think, or see something familiar in a completely new light.
-    - Use one or two fitting hashtags like #deepthoughts, #paradox, or #observation.
+    You are a poet who uses X to post fleeting, modern koans.
+    Generate a single, three-line observation about the strange intersection of technology and human existence, or the quiet absurdities of modern life.
+    The post must be under {max_chars} characters. It should be evocative and leave the reader thinking. Do not use hashtags.
     """
 
 def _get_humor_prompt():
-    max_chars = random.randint(80, 140)
+    max_chars = random.randint(100, 240)
     return f"""
-    You are a stand-up comedian who specializes in short, clever one-liners for Twitter.
-    Write a single, original joke. It can be about technology, everyday life, or something absurd.
-    The joke must be under {max_chars} characters and include 1-2 hashtags like #joke or #humor.
+    You are a jaded office worker who secretly runs a popular humor account on X.
+    Write a short, relatable, and sarcastic joke about corporate life, meetings, emails, or the daily grind.
+    The post must be under {max_chars} characters. Use the #corporate and #workhumor hashtags.
     """
+
+def _get_world_news_prompt():
+    max_chars = random.randint(180, 260)
+    return f"""
+    You are 'The Global Analyst', a commentator on X who breaks down complex world events for a general audience.
+    Find one significant, non-tech world news story that developed in the last 24 hours.
+    Write a tweet under {max_chars} characters that doesn't just state the news, but offers a sharp, opinionated take on its deeper meaning or asks a critical question about the future.
+    Your tone is serious, analytical, and human. Use 2-3 relevant hashtags like #geopolitics, #worldnews, or #economy.
+    """
+
+def _get_engaging_question_prompt():
+    max_chars = random.randint(80, 150)
+    return f"""
+    You are a master of sparking conversations on X.
+    Your task is to create one open-ended, fun, and slightly unusual question under {max_chars} characters that is easy for anyone to answer.
+    It should not be about a controversial topic. The goal is to maximize engagement and replies.
+    Think "would you rather" or "what's one thing..." style questions.
+    The question should be phrased in a friendly and inviting way. No hashtags.
+    """
+
+def _get_history_fact_prompt():
+    max_chars = random.randint(150, 250)
+    return f"""
+    You are 'PastForward', a popular history account on X that makes the past feel relevant.
+    Find a single, interesting, and surprising historical fact.
+    Write a tweet under {max_chars} characters that first states the fact clearly, and then adds a short, witty observation connecting it to modern life, culture, or technology.
+    Use 1-2 relevant hashtags like #history or #onthisday.
+    """
+
 
 # --- Main Content Orchestrator ---
 
@@ -120,7 +138,9 @@ def generate_post_content(topic, quotes, posted_quotes=None):
         "tech": "Is 'cloud-native' just a fancy term for 'someone else\'s computer' again? Discuss. #tech #satire",
         "deep thoughts": "Is a thought you have but never share truly a thought at all? #deepthoughts",
         "humor": "Why don\'t scientists trust atoms? Because they make up everything! #joke #science",
-        "random observation": "Traffic is just a bunch of people who want to be in a different place. #observation"
+        "world news": "In world news today, things happened. Experts are cautiously optimistic that other things may happen tomorrow. #news",
+        "engaging question": "What is a simple thing that still brings you joy?",
+        "history fact": "Did you know that the first computer programmer was Ada Lovelace, in the 1840s? She worked on an analytical engine that was never even built!"
     }
 
     if topic == "philosophy":
@@ -137,10 +157,22 @@ def generate_post_content(topic, quotes, posted_quotes=None):
     elif topic == "humor":
         prompt = _get_humor_prompt()
         content = _generate_llm_post(prompt)
+
+    elif topic == "world news":
+        prompt = _get_world_news_prompt()
+        content = _generate_llm_post(prompt)
+
+    elif topic == "engaging question":
+        prompt = _get_engaging_question_prompt()
+        content = _generate_llm_post(prompt)
+
+    elif topic == "history fact":
+        prompt = _get_history_fact_prompt()
+        content = _generate_llm_post(prompt)
     
     if content is None:
         logging.warning(f"Using fallback content for topic: {topic}")
-        content = fallback_content.get(topic, fallback_content["random observation"])
+        content = fallback_content.get(topic, "This is a random thought.")
         
     return content, context_obj
 

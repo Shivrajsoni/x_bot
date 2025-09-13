@@ -55,6 +55,15 @@ def save_posted_quote(quote_text, filename="posted_quotes.json"):
     with open(filename, "w") as f:
         json.dump(list(posted_set), f, indent=2)
 
+def log_post_to_history(content, filename="post_history.log"):
+    """Appends a successfully posted tweet to a log file."""
+    try:
+        with open(filename, "a") as f:
+            timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+            f.write(f"[{timestamp}]\n{content}\n{'-'*40}\n")
+    except Exception as e:
+        logging.error(f"Failed to write to post history log: {e}")
+
 # ============ MAIN LOOP =============
 
 def main_loop():
@@ -96,10 +105,11 @@ def main_loop():
                 logging.info(f"Generated content: {content}")
                 success = post_tweet(content)
                 
-                # 3. If successful, update state
+                # 3. If successful, update state and log the post
                 if success:
                     last_post = datetime.utcnow()
                     save_last_post_time(last_post)
+                    log_post_to_history(content)
                     
                     # If it was a philosophy quote, save it to our history
                     if topic == "philosophy" and context_obj:
