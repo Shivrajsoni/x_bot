@@ -5,6 +5,8 @@ import logging
 import json
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+import threading
+from flask import Flask
 
 # Load environment variables from .env file
 load_dotenv()
@@ -12,6 +14,20 @@ load_dotenv()
 from config import TOPICS
 from content import generate_post_content, load_quotes
 from x_client import post_tweet
+
+# ============ WEB SERVER for RENDER DEPLOYMENT =============
+app = Flask(__name__)
+
+@app.route('/')
+def health_check():
+    """Render health check endpoint."""
+    return "Worker is running."
+
+def run_web_server():
+    """Runs the Flask app."""
+    # Render provides the PORT environment variable.
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
 
 # ============ STATE MANAGEMENT =============
 
@@ -129,4 +145,10 @@ def main_loop():
         time.sleep(60 * check_interval_minutes)
 
 if __name__ == "__main__":
-    main_loop()
+    # Run the main loop in a background thread
+    worker_thread = threading.Thread(target=main_loop)
+    worker_thread.daemon = True
+    worker_thread.start()
+    
+    # Run the web server in the main thread
+    run_web_server()
