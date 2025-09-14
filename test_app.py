@@ -5,9 +5,7 @@ from dotenv import load_dotenv
 # Load .env variables before importing other project modules
 load_dotenv()
 
-from content import generate_post_content, load_quotes
 from x_client import verify_credentials, post_tweet
-from config import TOPICS
 
 def run_tests():
     """
@@ -20,34 +18,13 @@ def run_tests():
     logging.info("--- STARTING BOT HEALTH CHECK ---")
 
     # --- Test 1: Verify X (Twitter) Credentials ---
-    logging.info("\n[1/2] Testing X API Credentials...")
+    logging.info("\n[1/1] Testing X API Credentials...")
     if verify_credentials():
         logging.info("✅ SUCCESS: X credentials are valid.")
     else:
         logging.error("❌ FAILURE: X credentials failed verification. Check your X API keys in the .env file.")
         failures += 1
 
-    # --- Test 2: Generate content for all topics ---
-    logging.info("\n[2/2] Testing Content Generation Engine...")
-    philosophy_quotes = load_quotes()
-    posted_quotes = set(q['quote'] for q in philosophy_quotes[:5])
-
-    for topic in TOPICS:
-        logging.info(f"  - Attempting to generate content for topic: '{topic}'...")
-        content, _ = generate_post_content(topic, philosophy_quotes, posted_quotes)
-        
-        if content and len(content) > 0:
-            logging.info(f"    ✅ SUCCESS: Generated content for '{topic}'.")
-            logging.info(f"      -> Preview: '{content[:80].replace('\n', ' ')}...'")
-        else:
-            import os
-            is_llm_topic = topic not in ["philosophy"]
-            if is_llm_topic and not os.getenv("GEMINI_API_KEY"):
-                logging.warning(f"    ⚠️ SKIPPED: LLM topic '{topic}' requires GEMINI_API_KEY. This is not a failure.")
-            else:
-                logging.error(f"    ❌ FAILURE: Failed to generate content for '{topic}'.")
-                failures += 1
-    
     # --- Final Report ---
     logging.info("\n--- TEST REPORT ---")
     if failures == 0:

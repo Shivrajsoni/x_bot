@@ -2,6 +2,7 @@ import os
 import random
 import json
 import logging
+import requests
 
 # Attempt to import google.generativeai
 try:
@@ -16,24 +17,48 @@ except ImportError:
     logging.warning("google.generativeai not installed. LLM features will be disabled.")
     genai = None
 
+def _get_news_from_api(category):
+    """Fetches news from NewsAPI.org."""
+    news_api_key = os.getenv("NEWS_API_KEY")
+    if not news_api_key:
+        logging.warning("NEWS_API_KEY not found. Cannot fetch news from API.")
+        return None
+
+    if category == "tech":
+        news_category = "technology"
+    elif category == "world":
+        news_category = random.choice(['general', 'entertainment', 'science'])
+    else:
+        return None
+
+    url = f"https://newsapi.org/v2/top-headlines?category={news_category}&language=en&apiKey={news_api_key}"
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        articles = data.get("articles", [])
+        if not articles:
+            logging.warning(f"No articles found for category: {news_category}")
+            return None
+        return random.choice(articles)
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error fetching news from NewsAPI: {e}")
+        return None
+
 # --- Content Generation Strategies ---
 
-def _generate_philosophy_post(quotes, posted_quotes):
+def _generate_philosophy_post(quotes):
     """
-    Generates a philosophy post, ensuring it has not been posted before.
+    Generates a philosophy post from a list of available (unused) quotes.
     Returns a tuple of (post_string, quote_object).
+    The quote_object now contains the database ID of the quote.
     """
     if not quotes:
+        logging.warning("No available philosophy quotes to post.")
         return None, None
 
-    # Find an unused quote by filtering out already posted ones
-    available_quotes = [q for q in quotes if q.get("quote") not in posted_quotes]
-
-    if not available_quotes:
-        logging.warning("All philosophy quotes have been posted. Waiting for reset.")
-        return None, None
-
-    quote_obj = random.choice(available_quotes)
+    quote_obj = random.choice(quotes)
     quote = quote_obj["quote"]
     author = quote_obj["author"]
     
@@ -50,11 +75,15 @@ def _generate_philosophy_post(quotes, posted_quotes):
     if random.random() < 0.3: # 30% chance
         post += f" {random.choice(['🤔', '🧐', '✨', '🤯'])}"
         
+    # The context object now just needs to be the original quote object
+    # which includes the ID.
     return post, quote_obj
 
 def _generate_llm_post(prompt):
     """Generic function to generate content using the Gemini LLM."""
-    if not genai or not GEMINI_API_KEY:
+    # Check for GEMINI_API_KEY inside the function to make it more testable
+    gemini_api_key = os.getenv("GEMINI_API_KEY")
+    if not genai or not gemini_api_key:
         logging.error("LLM client not configured. Cannot generate post.")
         return None
 
@@ -68,14 +97,23 @@ def _generate_llm_post(prompt):
 
 # --- Topic-Specific LLM Prompts ---
 
-def _get_tech_prompt():
+def _get_tech_prompt(article=None):
     max_chars = random.randint(120, 260)
-    return f"""
-    You are 'Cyberskeptic', a tech commentator on X with a sharp, insightful, and slightly pessimistic wit.
-    Find a recent, hyped-up tech news story (in AI, VR, blockchain, etc.).
-    Write a tweet under {max_chars} characters that cuts through the hype and points out the potential downside, the overlooked consequence, or the comical absurdity of it.
-    Your tone is dry, witty, and knowledgeable. End with a single, cutting hashtag.
-    """
+    if article:
+        prompt = f"""
+        You are 'Cyberskeptic', a tech commentator on X with a sharp, insightful, and strongly opinionated wit.
+        Based on the following headline about a new innovation, write a tweet under {max_chars} characters that cuts through the hype. Give your sharp opinion on the potential downside, the overlooked consequence, or the comical absurdity of it.
+        Headline: {article['title']}
+        Your tone is dry, witty, and knowledgeable. Be bold in your opinion. Only use a hashtag if it is very specific and adds to the wit.
+        """
+    else:
+        prompt = f"""
+        You are 'Cyberskeptic', a tech commentator on X with a sharp, insightful, and strongly opinionated wit.
+        Find a recent, hyped-up tech news story about a new innovation.
+        Write a tweet under {max_chars} characters that cuts through the hype. Give your sharp opinion on the potential downside, the overlooked consequence, or the comical absurdity of it.
+        Your tone is dry, witty, and knowledgeable. Be bold in your opinion. Only use a hashtag if it is very specific and adds to the wit.
+        """
+    return prompt
 
 def _get_deep_thought_prompt():
     max_chars = random.randint(100, 200)
@@ -90,17 +128,27 @@ def _get_humor_prompt():
     return f"""
     You are a jaded office worker who secretly runs a popular humor account on X.
     Write a short, relatable, and sarcastic joke about corporate life, meetings, emails, or the daily grind.
-    The post must be under {max_chars} characters. Use the #corporate and #workhumor hashtags.
+    The post must be under {max_chars} characters. You can add a hashtag like #corporate or #workhumor if it feels natural, but it's not required.
     """
 
-def _get_world_news_prompt():
+
+def _get_world_news_prompt(article=None):
     max_chars = random.randint(180, 260)
-    return f"""
-    You are 'The Global Analyst', a commentator on X who breaks down complex world events for a general audience.
-    Find one significant, non-tech world news story that developed in the last 24 hours.
-    Write a tweet under {max_chars} characters that doesn't just state the news, but offers a sharp, opinionated take on its deeper meaning or asks a critical question about the future.
-    Your tone is serious, analytical, and human. Use 2-3 relevant hashtags like #geopolitics, #worldnews, or #economy.
-    """
+    if article:
+        prompt = f"""
+        You are 'The Modern Observer', a thoughtful commentator on X who reflects on the significant events of our time.
+        Based on the following headline, write a tweet under {max_chars} characters that offers a sharp, opinionated, and human take on its deeper meaning. You can touch upon art, culture, recent mishaps, or new innovations.
+        Headline: {article['title']}
+        Your tone is analytical, and human. Don't just report the news, give a unique perspective. If a hashtag is needed, use one or two specific ones. Avoid generic tags.
+        """
+    else:
+        prompt = f"""
+        You are 'The Modern Observer', a thoughtful commentator on X who reflects on the significant events of our time.
+        Find a significant news story from the last 24 hours about art, culture, a recent mishap, or a new innovation.
+        Write a tweet under {max_chars} characters that offers a sharp, opinionated, and human take on its deeper meaning. Don't just report the news, give a unique perspective.
+        Your tone is analytical, and human. If a hashtag is needed, use one or two specific ones. Avoid generic tags.
+        """
+    return prompt
 
 def _get_engaging_question_prompt():
     max_chars = random.randint(80, 150)
@@ -118,20 +166,25 @@ def _get_history_fact_prompt():
     You are 'PastForward', a popular history account on X that makes the past feel relevant.
     Find a single, interesting, and surprising historical fact.
     Write a tweet under {max_chars} characters that first states the fact clearly, and then adds a short, witty observation connecting it to modern life, culture, or technology.
-    Use 1-2 relevant hashtags like #history or #onthisday.
+    A hashtag is not required, but if you use one, make it specific and relevant. Avoid generic tags like #history.
     """
 
+def _get_cs_tip_prompt():
+    max_chars = random.randint(150, 260)
+    return f"""
+    You are 'CodeWise', a senior software engineer who enjoys sharing practical advice on X.
+    Generate a short, insightful tip or a lesser-known fact about a niche computer science topic. This could be about a specific programming language (like Python or Rust), a database optimization trick, a useful command-line tool, a design pattern, or a data structure.
+    The post must be under {max_chars} characters. It should be clear, concise, and immediately useful to other developers.
+    You can use one or two relevant hashtags, like the name of the technology (e.g., #python, #git).
+    """
 
 # --- Main Content Orchestrator ---
 
-def generate_post_content(topic, quotes, posted_quotes=None):
+def generate_post_content(topic, quotes):
     """
     Generates post content based on the selected topic.
     Returns a tuple: (content_string, context_object)
     """
-    if posted_quotes is None:
-        posted_quotes = set()
-
     content, context_obj = None, None
 
     fallback_content = {
@@ -140,14 +193,16 @@ def generate_post_content(topic, quotes, posted_quotes=None):
         "humor": "Why don\'t scientists trust atoms? Because they make up everything! #joke #science",
         "world news": "In world news today, things happened. Experts are cautiously optimistic that other things may happen tomorrow. #news",
         "engaging question": "What is a simple thing that still brings you joy?",
-        "history fact": "Did you know that the first computer programmer was Ada Lovelace, in the 1840s? She worked on an analytical engine that was never even built!"
+        "history fact": "Did you know that the first computer programmer was Ada Lovelace, in the 1840s? She worked on an analytical engine that was never even built!",
+        "cs_tip": "Pro-tip: Use `git stash --include-untracked` to stash untracked files along with your other changes. #git"
     }
 
     if topic == "philosophy":
-        content, context_obj = _generate_philosophy_post(quotes, posted_quotes)
+        content, context_obj = _generate_philosophy_post(quotes)
     
     elif topic == "tech":
-        prompt = _get_tech_prompt()
+        article = _get_news_from_api("tech")
+        prompt = _get_tech_prompt(article)
         content = _generate_llm_post(prompt)
 
     elif topic == "deep thoughts":
@@ -159,7 +214,8 @@ def generate_post_content(topic, quotes, posted_quotes=None):
         content = _generate_llm_post(prompt)
 
     elif topic == "world news":
-        prompt = _get_world_news_prompt()
+        article = _get_news_from_api("world")
+        prompt = _get_world_news_prompt(article)
         content = _generate_llm_post(prompt)
 
     elif topic == "engaging question":
@@ -170,17 +226,12 @@ def generate_post_content(topic, quotes, posted_quotes=None):
         prompt = _get_history_fact_prompt()
         content = _generate_llm_post(prompt)
     
+    elif topic == "cs_tip":
+        prompt = _get_cs_tip_prompt()
+        content = _generate_llm_post(prompt)
+    
     if content is None:
         logging.warning(f"Using fallback content for topic: {topic}")
         content = fallback_content.get(topic, "This is a random thought.")
         
     return content, context_obj
-
-def load_quotes(filename="quotes.json"):
-    """Loads quotes from a JSON file."""
-    try:
-        with open(filename, "r") as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        logging.error(f"Could not load quotes from {filename}: {e}")
-        return []
