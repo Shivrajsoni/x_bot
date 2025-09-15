@@ -1,10 +1,11 @@
 # Topics to choose from
 TOPICS = [
     "tech", 
-    "philosophy", 
+    "philosophy",
     "deep thoughts", 
     "humor", 
     "world news",
     "engaging question",
-    "history fact"
+    "history fact",
+    "cs_tip"
 ]

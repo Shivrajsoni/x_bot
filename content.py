@@ -48,36 +48,7 @@ def _get_news_from_api(category):
 
 # --- Content Generation Strategies ---
 
-def _generate_philosophy_post(quotes):
-    """
-    Generates a philosophy post from a list of available (unused) quotes.
-    Returns a tuple of (post_string, quote_object).
-    The quote_object now contains the database ID of the quote.
-    """
-    if not quotes:
-        logging.warning("No available philosophy quotes to post.")
-        return None, None
 
-    quote_obj = random.choice(quotes)
-    quote = quote_obj["quote"]
-    author = quote_obj["author"]
-    
-    formats = [
-        f'A thought from {author}: "{quote}"\n\nWhat does this mean to you? #philosophy',
-        f'"{quote}" - {author}\n\n#quotes #wisdom',
-        f'Mulling over this from {author}: \n\n"{quote}" #deepthoughts',
-        f'{author}. Agree or disagree? #classicphilosophy',
-        f'"{quote}"\n\n- {author}'
-    ]
-    
-    post = random.choice(formats)
-    
-    if random.random() < 0.3: # 30% chance
-        post += f" {random.choice(['🤔', '🧐', '✨', '🤯'])}"
-        
-    # The context object now just needs to be the original quote object
-    # which includes the ID.
-    return post, quote_obj
 
 def _generate_llm_post(prompt):
     """Generic function to generate content using the Gemini LLM."""
@@ -96,6 +67,16 @@ def _generate_llm_post(prompt):
         return None
 
 # --- Topic-Specific LLM Prompts ---
+
+def _get_philosophy_prompt():
+    max_chars = random.randint(150, 260)
+    return f"""
+    You are a philosopher for the modern age, sharing deep, original thoughts on X.
+    Generate a single, thought-provoking philosophical question or statement under {max_chars} characters.
+    It should be about a timeless human concern (e.g., consciousness, meaning, freedom, ethics) but framed in a fresh, modern way.
+    Your tone is insightful, slightly provocative, and designed to make people pause and think. Avoid cliches.
+    Use a single, relevant hashtag like #philosophy, #consciousness, or #ethics.
+    """
 
 def _get_tech_prompt(article=None):
     max_chars = random.randint(120, 260)
@@ -189,7 +170,9 @@ def generate_post_content(topic, quotes):
 
     fallback_content = {
         "tech": "Is 'cloud-native' just a fancy term for 'someone else\'s computer' again? Discuss. #tech #satire",
+        "philosophy": "What is the nature of consciousness? #philosophy",
         "deep thoughts": "Is a thought you have but never share truly a thought at all? #deepthoughts",
+
         "humor": "Why don\'t scientists trust atoms? Because they make up everything! #joke #science",
         "world news": "In world news today, things happened. Experts are cautiously optimistic that other things may happen tomorrow. #news",
         "engaging question": "What is a simple thing that still brings you joy?",
@@ -197,8 +180,11 @@ def generate_post_content(topic, quotes):
         "cs_tip": "Pro-tip: Use `git stash --include-untracked` to stash untracked files along with your other changes. #git"
     }
 
+    
+    
     if topic == "philosophy":
-        content, context_obj = _generate_philosophy_post(quotes)
+        prompt = _get_philosophy_prompt()
+        content = _generate_llm_post(prompt)
     
     elif topic == "tech":
         article = _get_news_from_api("tech")
