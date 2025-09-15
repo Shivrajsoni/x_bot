@@ -270,9 +270,10 @@ def main_loop():
         logging.info(f"Sleeping for {check_interval_minutes} minutes...")
         time.sleep(60 * check_interval_minutes)
 
+init_db()
+worker_thread = threading.Thread(target=main_loop)
+worker_thread.daemon = True
+worker_thread.start()
+
 if __name__ == "__main__":
-    init_db()
-    worker_thread = threading.Thread(target=main_loop)
-    worker_thread.daemon = True
-    worker_thread.start()
     run_web_server()

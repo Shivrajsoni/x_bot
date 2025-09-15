@@ -1,7 +1,8 @@
-flask
+Flask
+gunicorn
+psycopg2-binary
 python-dotenv
-google-generativeai
 requests
 requests-oauthlib
-psycopg2-binary
-gunicorn
+google-generativeai
+newsapi-python
