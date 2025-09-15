@@ -55,8 +55,7 @@ def main_loop():
         topic = random.choice(TOPICS)
         logging.info(f"Selected topic: {topic}")
         content, _ = generate_post_content(
-            topic,
-            quotes=[] # No quotes from DB
+            topic
         )
         
         if content and len(content) <= 280:

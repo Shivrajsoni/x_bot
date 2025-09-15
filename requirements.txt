@@ -4,4 +4,3 @@ python-dotenv
 requests
 requests-oauthlib
 google-generativeai
-newsapi-python

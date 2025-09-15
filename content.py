@@ -17,34 +17,7 @@ except ImportError:
     logging.warning("google.generativeai not installed. LLM features will be disabled.")
     genai = None
 
-def _get_news_from_api(category):
-    """Fetches news from NewsAPI.org."""
-    news_api_key = os.getenv("NEWS_API_KEY")
-    if not news_api_key:
-        logging.warning("NEWS_API_KEY not found. Cannot fetch news from API.")
-        return None
 
-    if category == "tech":
-        news_category = "technology"
-    elif category == "world":
-        news_category = random.choice(['general', 'entertainment', 'science'])
-    else:
-        return None
-
-    url = f"https://newsapi.org/v2/top-headlines?category={news_category}&language=en&apiKey={news_api_key}"
-
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
-        articles = data.get("articles", [])
-        if not articles:
-            logging.warning(f"No articles found for category: {news_category}")
-            return None
-        return random.choice(articles)
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error fetching news from NewsAPI: {e}")
-        return None
 
 # --- Content Generation Strategies ---
 
@@ -78,22 +51,14 @@ def _get_philosophy_prompt():
     Use a single, relevant hashtag like #philosophy, #consciousness, or #ethics.
     """
 
-def _get_tech_prompt(article=None):
+def _get_tech_prompt():
     max_chars = random.randint(120, 260)
-    if article:
-        prompt = f"""
-        You are 'Cyberskeptic', a tech commentator on X with a sharp, insightful, and strongly opinionated wit.
-        Based on the following headline about a new innovation, write a tweet under {max_chars} characters that cuts through the hype. Give your sharp opinion on the potential downside, the overlooked consequence, or the comical absurdity of it.
-        Headline: {article['title']}
-        Your tone is dry, witty, and knowledgeable. Be bold in your opinion. Only use a hashtag if it is very specific and adds to the wit.
-        """
-    else:
-        prompt = f"""
-        You are 'Cyberskeptic', a tech commentator on X with a sharp, insightful, and strongly opinionated wit.
-        Find a recent, hyped-up tech news story about a new innovation.
-        Write a tweet under {max_chars} characters that cuts through the hype. Give your sharp opinion on the potential downside, the overlooked consequence, or the comical absurdity of it.
-        Your tone is dry, witty, and knowledgeable. Be bold in your opinion. Only use a hashtag if it is very specific and adds to the wit.
-        """
+    prompt = f"""
+    You are 'Cyberskeptic', a tech commentator on X with a sharp, insightful, and strongly opinionated wit.
+    Find a recent, hyped-up tech news story about a new innovation.
+    Write a tweet under {max_chars} characters that cuts through the hype. Give your sharp opinion on the potential downside, the overlooked consequence, or the comical absurdity of it.
+    Your tone is dry, witty, and knowledgeable. Be bold in your opinion. Only use a hashtag if it is very specific and adds to the wit.
+    """
     return prompt
 
 def _get_deep_thought_prompt():
@@ -113,22 +78,14 @@ def _get_humor_prompt():
     """
 
 
-def _get_world_news_prompt(article=None):
+def _get_world_news_prompt():
     max_chars = random.randint(180, 260)
-    if article:
-        prompt = f"""
-        You are 'The Modern Observer', a thoughtful commentator on X who reflects on the significant events of our time.
-        Based on the following headline, write a tweet under {max_chars} characters that offers a sharp, opinionated, and human take on its deeper meaning. You can touch upon art, culture, recent mishaps, or new innovations.
-        Headline: {article['title']}
-        Your tone is analytical, and human. Don't just report the news, give a unique perspective. If a hashtag is needed, use one or two specific ones. Avoid generic tags.
-        """
-    else:
-        prompt = f"""
-        You are 'The Modern Observer', a thoughtful commentator on X who reflects on the significant events of our time.
-        Find a significant news story from the last 24 hours about art, culture, a recent mishap, or a new innovation.
-        Write a tweet under {max_chars} characters that offers a sharp, opinionated, and human take on its deeper meaning. Don't just report the news, give a unique perspective.
-        Your tone is analytical, and human. If a hashtag is needed, use one or two specific ones. Avoid generic tags.
-        """
+    prompt = f"""
+    You are 'The Modern Observer', a thoughtful commentator on X who reflects on the significant events of our time.
+    Find a significant news story from the last 24 hours about art, culture, a recent mishap, or a new innovation.
+    Write a tweet under {max_chars} characters that offers a sharp, opinionated, and human take on its deeper meaning. Don't just report the news, give a unique perspective.
+    Your tone is analytical, and human. If a hashtag is needed, use one or two specific ones. Avoid generic tags.
+    """
     return prompt
 
 def _get_engaging_question_prompt():
@@ -161,7 +118,7 @@ def _get_cs_tip_prompt():
 
 # --- Main Content Orchestrator ---
 
-def generate_post_content(topic, quotes):
+def generate_post_content(topic):
     """
     Generates post content based on the selected topic.
     Returns a tuple: (content_string, context_object)
@@ -187,8 +144,7 @@ def generate_post_content(topic, quotes):
         content = _generate_llm_post(prompt)
     
     elif topic == "tech":
-        article = _get_news_from_api("tech")
-        prompt = _get_tech_prompt(article)
+        prompt = _get_tech_prompt()
         content = _generate_llm_post(prompt)
 
     elif topic == "deep thoughts":
@@ -200,8 +156,7 @@ def generate_post_content(topic, quotes):
         content = _generate_llm_post(prompt)
 
     elif topic == "world news":
-        article = _get_news_from_api("world")
-        prompt = _get_world_news_prompt(article)
+        prompt = _get_world_news_prompt()
         content = _generate_llm_post(prompt)
 
     elif topic == "engaging question":
