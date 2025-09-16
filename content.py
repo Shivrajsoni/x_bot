@@ -48,7 +48,7 @@ def _get_philosophy_prompt():
     Generate a single, thought-provoking philosophical question or statement under {max_chars} characters.
     It should be about a timeless human concern (e.g., consciousness, meaning, freedom, ethics) but framed in a fresh, modern way.
     Your tone is insightful, slightly provocative, and designed to make people pause and think. Avoid cliches.
-    Use a single, relevant hashtag like #philosophy, #consciousness, or #ethics.
+    Use a single, relevant hashtag like #philosophy, #consciousness, or #ethics if necessary then only else don't use tags too much.
     """
 
 def _get_tech_prompt():

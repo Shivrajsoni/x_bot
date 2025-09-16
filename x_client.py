@@ -1,6 +1,7 @@
 import os
 import requests
 import logging
+from datetime import datetime, timezone
 
 # Using OAuth 1.0a is more robust and required for user-context endpoints.
 try:
@@ -49,22 +50,24 @@ def post_tweet(text):
 
 def verify_credentials():
     """
-    Verifies credentials using OAuth 1.0a by fetching the authenticated user's info.
+    Verifies credentials and returns the user's ID.
     """
     auth = _get_oauth1_auth()
     if not auth:
-        return False
+        return None
 
     url = "https://api.twitter.com/2/users/me"
     try:
         resp = requests.get(url, auth=auth)
         if resp.status_code == 200:
             user_data = resp.json().get("data", {})
-            logging.info(f"Successfully verified credentials for user: @{user_data.get('username')}")
-            return True
+            user_id = user_data.get("id")
+            username = user_data.get("username")
+            logging.info(f"Successfully verified credentials for user: @{username} (ID: {user_id})")
+            return user_id
         else:
             logging.error(f"Credential verification failed. Status: {resp.status_code}, Response: {resp.text}")
-            return False
+            return None
     except Exception as e:
         logging.error(f"An exception occurred during credential verification: {e}")
-        return False
+        return None
