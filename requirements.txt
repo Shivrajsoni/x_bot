@@ -1,6 +1,4 @@
-Flask
-gunicorn
 python-dotenv
 requests
-requests-oauthlib
+requests_oauthlib
 google-generativeai

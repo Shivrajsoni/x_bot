@@ -1,0 +1,39 @@
+name: Create and Post Tweet
+
+on:
+  schedule:
+    # Runs roughly every 6-8 hours. The random sleep adds variability.
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
+
+jobs:
+  build-and-post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11' # You can change this to your desired version
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Test with unittest
+        run: |
+          /usr/bin/python3 -m unittest discover tests
+
+      - name: Run Post Script
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+        run: |
+          sleep $((RANDOM % 1800 + 1)) # Sleep for a random duration up to 30 minutes
+          python main.py
