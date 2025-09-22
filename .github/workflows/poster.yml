@@ -24,6 +24,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: Test with unittest
+        env:
+          GEMINI_API_KEY: "dummy-key-for-testing"
         run: |
           /usr/bin/python3 -m unittest discover tests
 
