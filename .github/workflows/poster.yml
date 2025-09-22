@@ -2,8 +2,8 @@ name: Create and Post Tweet
 
 on:
   schedule:
-    # Runs roughly every 6-8 hours. The random sleep adds variability.
-    - cron: '0 */6 * * *'
+    # Runs roughly every 12-8 hours. The random sleep adds variability.
+    - cron: '0 */12 * * *'
   workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
 
 jobs:
